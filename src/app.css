@@ -1,0 +1,134 @@
+@import 'tailwindcss';
+
+:root {
+	--app-bg: #0d0f14;
+	--app-panel: #171a21;
+	--app-panel-soft: #222733;
+	--app-border: #252a36;
+	--app-text: #f5f7fb;
+	--app-text-strong: #e9edf7;
+	--app-text-muted: #9aa3b2;
+	--app-text-soft: #6f7886;
+}
+
+html[data-theme='light'] {
+	--app-bg: #f6f1e7;
+	--app-panel: #ece4d6;
+	--app-panel-soft: #d7ccb7;
+	--app-border: #cfc3ae;
+	--app-text: #1a2230;
+	--app-text-strong: #202837;
+	--app-text-muted: #5d6776;
+	--app-text-soft: #7a8391;
+}
+
+html,
+body {
+	background: var(--app-bg);
+	color: var(--app-text);
+}
+
+html[data-theme='light'] .bg-zinc-900 {
+	background-color: var(--app-bg) !important;
+}
+
+html[data-theme='light'] .bg-zinc-900\/95 {
+	background-color: rgb(246 241 231 / 0.95) !important;
+}
+
+html[data-theme='light'] .bg-zinc-900\/60 {
+	background-color: rgb(215 204 183 / 0.7) !important;
+}
+
+html[data-theme='light'] .bg-zinc-800 {
+	background-color: var(--app-panel) !important;
+}
+
+html[data-theme='light'] .bg-zinc-800\/50 {
+	background-color: rgb(236 228 214 / 0.58) !important;
+}
+
+html[data-theme='light'] .bg-zinc-700 {
+	background-color: var(--app-panel-soft) !important;
+}
+
+html[data-theme='light'] .border-zinc-800,
+html[data-theme='light'] .divide-zinc-800 > :not([hidden]) ~ :not([hidden]) {
+	border-color: var(--app-border) !important;
+}
+
+html[data-theme='light'] .border-zinc-700 {
+	border-color: var(--app-border) !important;
+}
+
+html[data-theme='light'] .text-zinc-100,
+html[data-theme='light'] .text-white {
+	color: var(--app-text) !important;
+}
+
+html[data-theme='light'] .text-zinc-200 {
+	color: var(--app-text-strong) !important;
+}
+
+html[data-theme='light'] .text-zinc-300 {
+	color: #364050 !important;
+}
+
+html[data-theme='light'] .text-zinc-400 {
+	color: var(--app-text-muted) !important;
+}
+
+html[data-theme='light'] .text-zinc-500,
+html[data-theme='light'] .placeholder-zinc-500::placeholder {
+	color: var(--app-text-soft) !important;
+}
+
+html[data-theme='light'] .text-zinc-600 {
+	color: #8c96a3 !important;
+}
+
+html[data-theme='light'] .hover\:bg-zinc-800:hover,
+html[data-theme='light'] .focus-visible\:bg-zinc-800:focus-visible {
+	background-color: rgb(226 216 198 / 0.9) !important;
+}
+
+html[data-theme='light'] .hover\:bg-zinc-800\/50:hover,
+html[data-theme='light'] .focus-visible\:bg-zinc-800\/50:focus-visible,
+html[data-theme='light'] .hover\:bg-zinc-700\/50:hover,
+html[data-theme='light'] .focus-visible\:bg-zinc-700\/50:focus-visible {
+	background-color: rgb(226 216 198 / 0.62) !important;
+}
+
+html[data-theme='light'] .hover\:text-zinc-200:hover,
+html[data-theme='light'] .focus-visible\:text-zinc-200:focus-visible,
+html[data-theme='light'] .hover\:text-zinc-300:hover,
+html[data-theme='light'] .focus-visible\:text-zinc-300:focus-visible {
+	color: var(--app-text) !important;
+}
+
+html[data-theme='light'] .bg-black\/70 {
+	background-color: rgb(26 34 48 / 0.7) !important;
+}
+
+html[data-theme='light'] .shadow-2xl {
+	box-shadow:
+		0 28px 80px rgb(42 38 30 / 0.18),
+		0 10px 28px rgb(42 38 30 / 0.12) !important;
+}
+
+html[data-theme='light'] .backdrop-blur-sm {
+	backdrop-filter: blur(10px);
+}
+
+/* Global focus styles — visible ring on keyboard focus, hidden on mouse click */
+@layer base {
+	*:focus-visible {
+		outline: 2px solid theme(--color-indigo-400);
+		outline-offset: 2px;
+		border-radius: 4px;
+	}
+
+	*:focus:not(:focus-visible) {
+		outline: none;
+	}
+}

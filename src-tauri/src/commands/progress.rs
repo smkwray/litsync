@@ -39,7 +39,7 @@ pub fn save_progress(input: SaveProgressInput, state: State<AppState>) -> Result
     )
     .map_err(|e| e.to_string())?;
 
-    // Write to SABP statistics.xml if the book has a library root
+    // Mirror to SABP statistics.xml if the book's library root uses SABP
     if let Ok(Some((folder_path, library_root))) = get_book_paths(&db, input.book_id) {
         if let Some(folder_name) = sabp::book_folder_name(&folder_path, &library_root) {
             let position_secs = (input.position_ms / 1000) as u64;

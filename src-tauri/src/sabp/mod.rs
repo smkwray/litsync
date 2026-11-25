@@ -12,8 +12,8 @@
 //! </root>
 //! ```
 //!
-//! We read this on scan to import progress and write to it on save
-//! so SABP on Android stays in sync.
+//! We read this on scan to import progress and, where the statistics folder
+//! already exists, write to it on save so SABP on Android stays in sync.
 
 use quick_xml::events::{BytesEnd, BytesStart, BytesText, Event};
 use quick_xml::{Reader, Writer};
@@ -126,10 +126,12 @@ fn parse_time_field(path: &str, time_str: &str) -> Option<SabpBookProgress> {
 
 /// Write book progress to SABP statistics.xml.
 /// Merges with existing entries — updates matching paths, keeps others.
+/// Does nothing unless the SABP statistics folder already exists, so
+/// libraries that SABP does not use are left untouched.
 pub fn write_statistics(library_root: &Path, updates: &[SabpBookProgress]) -> Result<(), String> {
-    let stats_dir = library_root.join(SABP_STATS_DIR);
-    std::fs::create_dir_all(&stats_dir)
-        .map_err(|e| format!("Failed to create SABP stats dir: {e}"))?;
+    if !library_root.join(SABP_STATS_DIR).is_dir() {
+        return Ok(());
+    }
 
     // Read existing entries
     let mut entries: HashMap<String, SabpBookProgress> = HashMap::new();
@@ -282,5 +284,78 @@ mod tests {
         // Nested subfolder
         let name = book_folder_name("/library/Author/Book Title/disc1", "/library");
         assert_eq!(name, Some("Author".to_string()));
+    }
+
+    /// An empty library root under the system temp dir, removed on drop.
+    struct TempLibrary(PathBuf);
+
+    impl TempLibrary {
+        fn new(name: &str) -> Self {
+            let dir = std::env::temp_dir()
+                .join(format!("litsync-sabp-{}-{name}", std::process::id()));
+            let _ = std::fs::remove_dir_all(&dir);
+            std::fs::create_dir_all(&dir).unwrap();
+            Self(dir)
+        }
+    }
+
+    impl Drop for TempLibrary {
+        fn drop(&mut self) {
+            let _ = std::fs::remove_dir_all(&self.0);
+        }
+    }
+
+    fn progress(path: &str, position_secs: u64) -> SabpBookProgress {
+        SabpBookProgress {
+            path: path.to_string(),
+            month: "2026-11".to_string(),
+            position_secs,
+        }
+    }
+
+    #[test]
+    fn write_leaves_library_without_sabp_untouched() {
+        // People who don't use SABP must not get its folder in their library.
+        let lib = TempLibrary::new("no-sabp");
+        write_statistics(&lib.0, &[progress("Book A", 60)]).unwrap();
+        assert_eq!(std::fs::read_dir(&lib.0).unwrap().count(), 0);
+    }
+
+    #[test]
+    fn write_updates_existing_sabp_file_and_keeps_other_books() {
+        // SABP's own entries for other books must survive our write.
+        let lib = TempLibrary::new("existing-file");
+        std::fs::create_dir(lib.0.join(SABP_STATS_DIR)).unwrap();
+        std::fs::write(
+            stats_file_path(&lib.0),
+            r#"<?xml version="1.0" encoding="UTF-8"?><root>
+    <book><path>Book A</path><time>2025-12 100</time></book>
+    <book><path>Book B</path><time>2025-12 200</time></book>
+</root>"#,
+        )
+        .unwrap();
+
+        write_statistics(&lib.0, &[progress("Book A", 4321)]).unwrap();
+
+        let books = read_statistics(&lib.0).unwrap();
+        let saved: Vec<_> = books
+            .iter()
+            .map(|b| (b.path.as_str(), b.month.as_str(), b.position_secs))
+            .collect();
+        assert_eq!(
+            saved,
+            vec![("Book A", "2026-11", 4321), ("Book B", "2025-12", 200)]
+        );
+    }
+
+    #[test]
+    fn write_creates_file_in_existing_sabp_folder() {
+        // The folder alone means SABP is in use for this library.
+        let lib = TempLibrary::new("existing-folder");
+        std::fs::create_dir(lib.0.join(SABP_STATS_DIR)).unwrap();
+        write_statistics(&lib.0, &[progress("Book A", 60)]).unwrap();
+        let books = read_statistics(&lib.0).unwrap();
+        assert_eq!(books.len(), 1);
+        assert_eq!(books[0].position_secs, 60);
     }
 }

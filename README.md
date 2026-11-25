@@ -33,7 +33,7 @@ For SABP, LitSync uses this file inside each library root you scan:
 <library-root>/!Smart AudioBook Player Statistics/statistics.xml
 ```
 
-On scan, it imports progress by matching each SABP entry to the top-level audiobook folder with the same name under the library root. Each time it saves progress, it writes the book's position to that file, creating the file if it does not exist, so SABP on Android sees the same position once the folder syncs.
+On scan, it imports progress by matching each SABP entry to the top-level audiobook folder with the same name under the library root. Each time it saves progress, it writes the book's position to that file if the `!Smart AudioBook Player Statistics` folder already exists in that library root, so SABP on Android sees the same position once the folder syncs. LitSync never creates that folder: in libraries without it, progress stays only in LitSync's database.
 
 ## Development
 

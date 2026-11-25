@@ -3,58 +3,45 @@
   <img src="src/lib/assets/logo-transparent.png" alt="LitSync logo" width="84" align="center" />
 </h1>
 
-LitSync is a portable audiobook player built with SvelteKit and Tauri.
-
-It keeps track of listening progress in its own local database, and when that data lives in a synced folder it can stay in sync across your devices. It also supports Android Smart AudioBook Player compatibility by reading and writing `!Smart AudioBook Player Statistics/statistics.xml` when that file is present inside a library root.
+LitSync is a portable desktop audiobook player built with SvelteKit and Tauri. It keeps listening progress in its own database, which can sync between computers through a synced folder, and shares progress with Smart AudioBook Player (SABP), an Android audiobook app.
 
 ## Status
 
 - Verified on macOS
 - Intended to support Windows and Linux via Tauri
 - Windows packaging has not been verified yet
+- No prebuilt releases are published; build the app from source as described under [Development](#development)
 
 ## Features
 
 - Scan a local audiobook library and build a searchable desktop library
-- Read embedded metadata and cover art from common audiobook formats
-- Display extracted cover art in the library and player
-- Import progress from Smart AudioBook Player on scan
-- Write progress back to Smart AudioBook Player's `statistics.xml` on save
-- Keep LitSync progress in its own SQLite database for cross-device sync when `.litsync-data` is in a synced folder
-- Portable mode: store app data next to the app bundle in `.litsync-data`
+- Read embedded metadata and cover art from common audiobook formats (MP3, M4A, M4B, OGG, Opus, FLAC, AAC, WMA)
+- Import progress from SABP on scan and write it back on save
+- Portable mode that keeps app data next to the app
 - Playback controls for chapter navigation, seek, speed, and volume
 - Chapter-aware playback for multi-file books
-- Adjustable playback speed
 - Optional silence-skip analysis and playback skipping
 - Light and dark themes
 
-## Smart AudioBook Player Compatibility
+## Sync and portable mode
 
-LitSync looks for:
+LitSync stores progress in a SQLite database, `litsync.db`, and keeps extracted cover art beside it. By default these live in the operating system's application-data directory. If a directory named `.litsync-data` exists next to the app (next to `LitSync.app` on macOS, next to the executable on Windows and Linux), LitSync uses that directory instead. Keep the app and `.litsync-data` in a synced folder to share progress between computers without SABP.
+
+For SABP, LitSync uses this file inside each library root you scan:
 
 ```text
 <library-root>/!Smart AudioBook Player Statistics/statistics.xml
 ```
 
-On scan, it imports book progress by matching each SABP folder name to the top-level audiobook folder under the scanned library root.
-
-On playback save, it updates the same XML file so Android and desktop stay aligned.
-
-## Progress Sync
-
-LitSync always stores its own playback progress in its SQLite database.
-
-If the packaged app is using portable mode and the `.litsync-data` directory is inside a synced folder, that LitSync progress database can sync between devices even without Smart AudioBook Player.
-
-Smart AudioBook Player support is an additional compatibility layer, not the only way progress sync works.
+On scan, it imports progress by matching each SABP entry to the top-level audiobook folder with the same name under the library root. Each time it saves progress, it writes the book's position to that file, creating the file if it does not exist, so SABP on Android sees the same position once the folder syncs.
 
 ## Development
 
 Requirements:
 
-- Node.js 20+
+- Node.js 20.19+ or 22.12+
 - Rust stable
-- Tauri prerequisites for your platform
+- [Tauri prerequisites](https://v2.tauri.app/start/prerequisites/) for your platform
 
 Install dependencies:
 
@@ -75,18 +62,12 @@ npm run check
 cd src-tauri && cargo check
 ```
 
-Build a production app:
+Build a production app (output goes to `src-tauri/target/release/bundle/`):
 
 ```sh
 npm run tauri:build
 ```
 
-## Portable Mode
-
-If a `.litsync-data` directory exists next to the packaged app, LitSync stores its database and extracted covers there instead of using the OS application-data directory.
-
-That makes it possible to keep both the app and its state inside a synced folder.
-
 ## License
 
-MIT
+MIT. See [LICENSE](LICENSE).

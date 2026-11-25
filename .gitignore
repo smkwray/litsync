@@ -30,3 +30,6 @@ vite.config.ts.timestamp-*
 src-tauri/icons/64x64.png
 src-tauri/icons/android/
 src-tauri/icons/ios/
+
+# Local privacy denylist
+.private-denylist

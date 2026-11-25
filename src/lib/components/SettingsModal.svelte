@@ -245,10 +245,6 @@
 							<span>Data directory</span>
 							<span class="max-w-[250px] truncate text-zinc-400" title={dataDir}>{dataDir}</span>
 						</div>
-						<div class="flex justify-between">
-							<span>SABP sync</span>
-							<span class="text-indigo-400">Active</span>
-						</div>
 						<div class="mt-2">
 							<p>LitSync v0.1.0</p>
 							<p>Press <kbd class="rounded bg-zinc-700 px-1 py-0.5">?</kbd> for keyboard shortcuts</p>

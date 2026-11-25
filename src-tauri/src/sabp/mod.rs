@@ -43,19 +43,21 @@ pub fn stats_file_path(library_root: &Path) -> PathBuf {
 /// Read all book progress from a SABP statistics.xml file.
 pub fn read_statistics(library_root: &Path) -> Result<Vec<SabpBookProgress>, String> {
     let stats_path = stats_file_path(library_root);
-    if !stats_path.exists() {
-        return Ok(Vec::new());
-    }
-
-    let content = std::fs::read_to_string(&stats_path)
-        .map_err(|e| format!("Failed to read {}: {e}", stats_path.display()))?;
+    let content = match std::fs::read_to_string(&stats_path) {
+        Ok(content) => content,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(Vec::new()),
+        Err(e) => return Err(format!("Failed to read {}: {e}", stats_path.display())),
+    };
 
     parse_statistics_xml(&content)
 }
 
 fn parse_statistics_xml(xml: &str) -> Result<Vec<SabpBookProgress>, String> {
     let mut reader = Reader::from_str(xml);
+    reader.config_mut().expand_empty_elements = true;
     let mut books = Vec::new();
+    let mut saw_root = false;
+    let mut depth = 0usize;
 
     let mut in_book = false;
     let mut current_path: Option<String> = None;
@@ -65,6 +67,13 @@ fn parse_statistics_xml(xml: &str) -> Result<Vec<SabpBookProgress>, String> {
         match reader.read_event() {
             Ok(Event::Start(ref e)) => {
                 let name = String::from_utf8_lossy(e.name().as_ref()).to_string();
+                if depth == 0 {
+                    if saw_root || name != "root" {
+                        return Err("Expected a single SABP <root> element".into());
+                    }
+                    saw_root = true;
+                }
+                depth += 1;
                 match name.as_str() {
                     "book" => {
                         in_book = true;
@@ -93,11 +102,19 @@ fn parse_statistics_xml(xml: &str) -> Result<Vec<SabpBookProgress>, String> {
                 }
             }
             Ok(Event::End(ref e)) => {
+                depth -= 1;
                 let name = String::from_utf8_lossy(e.name().as_ref()).to_string();
                 if name == "book" {
                     in_book = false;
                 }
                 current_tag.clear();
+            }
+            Ok(Event::Text(e)) if depth == 0 && !e.iter().all(u8::is_ascii_whitespace) => {
+                return Err("Unexpected text outside the SABP <root> element".into());
+            }
+            // The streaming reader can reach EOF with elements still open.
+            Ok(Event::Eof) if !saw_root || depth != 0 => {
+                return Err("Missing or incomplete SABP <root> element".into());
             }
             Ok(Event::Eof) => break,
             Err(e) => return Err(format!("XML parse error: {e}")),
@@ -135,10 +152,8 @@ pub fn write_statistics(library_root: &Path, updates: &[SabpBookProgress]) -> Re
 
     // Read existing entries
     let mut entries: HashMap<String, SabpBookProgress> = HashMap::new();
-    if let Ok(existing) = read_statistics(library_root) {
-        for entry in existing {
-            entries.insert(entry.path.clone(), entry);
-        }
+    for entry in read_statistics(library_root)? {
+        entries.insert(entry.path.clone(), entry);
     }
 
     // Apply updates
@@ -346,6 +361,25 @@ mod tests {
             saved,
             vec![("Book A", "2026-11", 4321), ("Book B", "2025-12", 200)]
         );
+    }
+
+    #[test]
+    fn write_preserves_corrupt_statistics_file() {
+        let lib = TempLibrary::new("corrupt-file");
+        std::fs::create_dir(lib.0.join(SABP_STATS_DIR)).unwrap();
+        let path = stats_file_path(&lib.0);
+        for corrupt in [
+            "<root><book><path>Book B</path><time>2025-12 200</time></root>",
+            "<root><book><path>Book B</path>",
+            "unreadable statistics",
+        ] {
+            std::fs::write(&path, corrupt).unwrap();
+
+            let result = write_statistics(&lib.0, &[progress("Book A", 60)]);
+
+            assert_eq!(std::fs::read(&path).unwrap(), corrupt.as_bytes());
+            assert!(result.is_err());
+        }
     }
 
     #[test]
